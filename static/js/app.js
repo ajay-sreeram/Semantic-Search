@@ -47,52 +47,28 @@ jQuery(document).ready(function () {
             }
         }).done(function (jsondata, textStatus, jqXHR) {
             console.log(jsondata)
-            for (i = 0; i < jsondata['use_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['use_scores'][i])}</b><br>
-                    ${truncateString(jsondata['use_sentences'][i])}</p>`
-                $('#output-use').append(el)
-            }
+            meta_info = jsondata['meta_info']            
+            for(var model_info of meta_info) {
+                var content = ""
+                model = model_info['name']
+                desc = model_info['desc']
 
-            for (i = 0; i < jsondata['bm25_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['bm25_scores'][i])}</b><br>    
-                    ${truncateString(jsondata['bm25_sentences'][i])}</p>`
-                $('#output-bm25').append(el)
-            }
-
-            for (i = 0; i < jsondata['sentenceBERT_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['sentenceBERT_scores'][i])}</b><br>
-                    ${truncateString(jsondata['sentenceBERT_sentences'][i])}</p>`
-                $('#output-sentenceBERT').append(el)
-            }
-
-            for (i = 0; i < jsondata['infersent_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['infersent_scores'][i])}</b><br>
-                    ${truncateString(jsondata['infersent_sentences'][i])}</p>`
-                $('#output-infersent').append(el)
-            }
-
-            for (i = 0; i < jsondata['bert_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['bert_scores'][i])}</b><br>
-                    ${truncateString(jsondata['bert_sentences'][i])}</p>`
-                $('#output-bert').append(el)
-            }
-
-            for (i = 0; i < jsondata['roberta_sentences'].length; i++) {
-                cor = i % 2
-                el = `<p class='cor_${cor}'>
-                    <b>Score: ${truncateScore(jsondata['roberta_scores'][i])}</b><br>
-                    ${truncateString(jsondata['roberta_sentences'][i])}</p>`
-                $('#output-roberta').append(el)
+                for (i = 0; i < jsondata[model+'_sentences'].length; i++) {
+                    cor = i % 2
+                    el = `<p class='cor_${cor}'>
+                        <b>Score: ${truncateScore(jsondata[model+'_scores'][i])}</b><br>
+                        ${truncateString(jsondata[model+'_sentences'][i])}</p>`                    
+                    content = content.concat(el)
+                }
+                el = `<p class='cor_${jsondata[model+'_sentences'].length%2}'>
+                    <b>Elapsed: ${(jsondata[model+'_elapsed'])}</b>
+                    </p>`                
+                content = content.concat(el)
+                result = `<div class="form-group col-md-6">
+                            <label>${desc}</label>
+                            <div class="output-container" id="output-${model}">${content}</div>
+                        </div>` 
+                $('#output_content').append(result)               
             }
 
         }).fail(function (jsondata, textStatus, jqXHR) {

@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(format='%(asctime)s [%(filename)-24.24s] %(levelname)s %(lineno)d: %(message)s', 
+                    level=logging.INFO,
+                    datefmt='%I:%M:%S')
 import flask
 from flask import Flask, request, render_template
 import json
@@ -7,6 +11,10 @@ import sentenceBERT_model
 import sentenceROBERTA_model
 import infersent_model
 import bert_model
+
+from datetime import timedelta
+import time
+
 
 app = Flask(__name__)
 
@@ -29,30 +37,43 @@ def get_prediction():
             corpus = input_corpus.split('\n')
         elif split_token == '1':
             corpus = input_corpus.replace('\n', '').split('.')
-
-        use_scores, use_sentences = use_model.get_scores(input_query, corpus, int(top_k))
-        d['use_scores'] = list(use_scores)
-        d['use_sentences'] = use_sentences
-
-        bm25_scores, bm25_sentences = bm25_model.get_scores(input_query, corpus, int(top_k))
-        d['bm25_scores'] = list(bm25_scores)
-        d['bm25_sentences'] = bm25_sentences
-
-        sentenceBERT_scores, sentenceBERT_sentences = sentenceBERT_model.get_scores(input_query, corpus, int(top_k))
-        d['sentenceBERT_scores'] = list(sentenceBERT_scores)
-        d['sentenceBERT_sentences'] = sentenceBERT_sentences
-
-        infersent_scores, infersent_sentences = infersent_model.get_scores(input_query, corpus, int(top_k))
-        d['infersent_scores'] = infersent_scores
-        d['infersent_sentences'] = list(infersent_sentences)
-
-        bert_scores, bert_sentences = bert_model.get_scores(input_query, corpus, int(top_k))
-        d['bert_scores'] = bert_scores
-        d['bert_sentences'] = list(bert_sentences)
-
-        roberta_scores, roberta_sentences = sentenceROBERTA_model.get_scores(input_query, corpus, int(top_k))
-        d['roberta_scores'] = roberta_scores
-        d['roberta_sentences'] = list(roberta_sentences)
+                
+        models = [{
+                    'name': 'use',
+                    'obj': use_model,
+                    'desc': 'Universal Sentence Encoder'
+                },{
+                    'name': 'bm25',
+                    'obj': bm25_model,
+                    'desc': 'BM25'
+                },{
+                    'name': 'sentenceBERT',
+                    'obj': sentenceBERT_model,
+                    'desc': 'Sentence Transformers BERT'
+                },{
+                    'name': 'infersent',
+                    'obj': infersent_model,
+                    'desc': 'Infersent Glove'
+                },{
+                    'name': 'bert',
+                    'obj': bert_model,
+                    'desc': 'BERT mean pooling'
+                },{
+                    'name': 'roberta',
+                    'obj': sentenceROBERTA_model,
+                    'desc': 'Sentence Transformers RoBERTA'
+                }
+            ]
+        for model in models:
+            model_name = model['name']
+            t0 = time.time()        
+            scores, sentences = model['obj'].get_scores(input_query, corpus, int(top_k))        
+            time_taken = str(timedelta(seconds=time.time() - t0))
+            d[f'{model_name}_scores'] = list(scores)
+            d[f'{model_name}_sentences'] = sentences
+            d[f'{model_name}_elapsed'] = time_taken    
+        
+        d['meta_info'] = [{'name': model['name'], 'desc': model['desc'] } for model in models]
 
         return app.response_class(response=json.dumps(d), status=200, mimetype='application/json')
     except Exception as error:
@@ -62,4 +83,5 @@ def get_prediction():
 
 
 if __name__ == '__main__':
+    print("starting server")
     app.run(host='0.0.0.0', debug=True, port=8000, use_reloader=False)
